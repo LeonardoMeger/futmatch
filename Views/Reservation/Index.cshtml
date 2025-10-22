@@ -1,0 +1,150 @@
+﻿@using FutMatchApp.Models.Enums
+@model IEnumerable<FutMatchApp.Models.Reservation>
+
+@{
+    ViewData["Title"] = "Minhas Reservas";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>@ViewData["Title"]</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Nova Reserva
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-filter"></i> Filtros de Busca</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Index" method="get">
+                <div class="row g-3">
+                    <!-- Filtro de Quadra (TEXTO) -->
+                    <div class="col-md-3">
+                        <label for="courtName" class="form-label">Quadra</label>
+                        <input type="text"
+                               class="form-control"
+                               id="courtName"
+                               name="courtName"
+                               value="@ViewBag.SelectedCourtName"
+                               placeholder="Digite o nome da quadra">
+                        <small class="text-muted">Ex: Quadra Arena</small>
+                    </div>
+
+                    <!-- Filtro de Data Início -->
+                    <div class="col-md-3">
+                        <label for="startDate" class="form-label">Data Início</label>
+                        <input type="date"
+                               class="form-control"
+                               id="startDate"
+                               name="startDate"
+                               value="@ViewBag.SelectedStartDate">
+                    </div>
+
+                    <!-- Filtro de Data Fim -->
+                    <div class="col-md-3">
+                        <label for="endDate" class="form-label">Data Fim</label>
+                        <input type="date"
+                               class="form-control"
+                               id="endDate"
+                               name="endDate"
+                               value="@ViewBag.SelectedEndDate">
+                    </div>
+
+                    <!-- Filtro de Time Adversário -->
+                    <div class="col-md-3">
+                        <label for="opponentTeamName" class="form-label">Time Adversário</label>
+                        <input type="text"
+                               class="form-control"
+                               id="opponentTeamName"
+                               name="opponentTeamName"
+                               value="@ViewBag.SelectedOpponentTeamName"
+                               placeholder="Nome do time">
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Limpar Filtros
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    @if (Model.Any())
+    {
+        <div class="row">
+            @foreach (var reservation in Model)
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">@reservation.Court.Nome</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">
+                                <strong>Data/Hora:</strong> @reservation.DataHora.ToString("dd/MM/yyyy HH:mm")
+                            </p>
+                            <p class="mb-2">
+                                <strong>Duração:</strong> @reservation.DuracaoHoras hora(s)
+                            </p>
+                            <p class="mb-2">
+                                <strong>Seu Time:</strong> @reservation.Team.Nome
+                            </p>
+                            @if (reservation.OpponentTeam != null)
+                            {
+                                <p class="mb-2">
+                                    <strong>Time Adversário:</strong> @reservation.OpponentTeam.Nome
+                                </p>
+                            }
+                            <p class="mb-2">
+                                <strong>Status:</strong>
+                                <span class="badge @(reservation.Status == StatusReservation.Confirmada ? "bg-success" :
+                                                     reservation.Status == StatusReservation.Pendente ? "bg-warning" : "bg-danger")">
+                                    @reservation.Status
+                                </span>
+                            </p>
+                            @if (!string.IsNullOrEmpty(reservation.Observacoes))
+                            {
+                                <p class="mb-0">
+                                    <strong>Observações:</strong> @reservation.Observacoes
+                                </p>
+                            }
+                        </div>
+                        @if (reservation.Status != StatusReservation.Cancelada)
+                        {
+                            <div class="card-footer">
+                                <form asp-action="Cancel" method="post" class="d-inline"
+                                      onsubmit="return confirm('Tem certeza que deseja cancelar esta reserva?');">
+                                    <input type="hidden" name="reservationId" value="@reservation.Id" />
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-x-circle"></i> Cancelar
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Nenhuma reserva encontrada com os filtros aplicados.
+        </div>
+    }
+</div>

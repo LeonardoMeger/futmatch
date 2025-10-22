@@ -1,0 +1,268 @@
+﻿<div class="dropdown">
+    <button class="btn btn-outline-primary position-relative" 
+            type="button" 
+            id="notificationsDropdown" 
+            data-bs-toggle="dropdown" 
+            aria-expanded="false">
+        <i class="fas fa-bell"></i>
+        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">
+            0
+        </span>
+    </button>
+    
+    <div class="dropdown-menu dropdown-menu-end p-0" 
+         aria-labelledby="notificationsDropdown" 
+         style="width: 350px; max-height: 400px; overflow-y: auto;">
+        
+        <!-- Cabeçalho -->
+        <div class="dropdown-header d-flex justify-content-between align-items-center border-bottom p-3">
+            <h6 class="mb-0 fw-bold">Notificações</h6>
+            <button type="button" 
+                    class="btn btn-sm btn-outline-secondary" 
+                    onclick="markAllNotificationsAsRead()"
+                    title="Marcar todas como lidas">
+                <i class="fas fa-check-double fa-sm"></i>
+            </button>
+        </div>
+        
+        <!-- Lista de Notificações -->
+        <div id="notificationsList">
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin text-muted"></i>
+                <p class="text-muted mb-0 mt-2">Carregando notificações...</p>
+            </div>
+        </div>
+        
+        <!-- Rodapé (se necessário) -->
+        <div class="dropdown-divider m-0"></div>
+        <div class="text-center p-2">
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                Mostrando até 10 notificações recentes
+            </small>
+        </div>
+    </div>
+</div>
+
+<script>
+let notificationUpdateInterval;
+
+// Carregar notificações quando a página carrega
+document.addEventListener('DOMContentLoaded', function() {
+    loadNotifications();
+    
+    // Atualizar notificações a cada 30 segundos
+    notificationUpdateInterval = setInterval(loadNotifications, 30000);
+});
+
+// Limpar interval quando sair da página
+window.addEventListener('beforeunload', function() {
+    if (notificationUpdateInterval) {
+        clearInterval(notificationUpdateInterval);
+    }
+});
+
+async function loadNotifications() {
+    try {
+        const response = await fetch('/Home/GetNotifications');
+        const result = await response.json();
+        
+        if (result.success) {
+            updateNotificationBadge(result.unreadCount);
+            renderNotifications(result.notifications);
+        } else {
+            console.error('Erro ao carregar notificações:', result.message);
+        }
+    } catch (error) {
+        console.error('Erro na requisição de notificações:', error);
+        document.getElementById('notificationsList').innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-exclamation-triangle text-warning"></i>
+                <p class="text-muted mb-0 mt-2">Erro ao carregar notificações</p>
+            </div>
+        `;
+    }
+}
+
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('notificationBadge');
+    
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('d-none');
+    } else {
+        badge.classList.add('d-none');
+    }
+}
+
+function renderNotifications(notifications) {
+    const container = document.getElementById('notificationsList');
+    
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-bell-slash text-muted fa-2x"></i>
+                <p class="text-muted mb-0 mt-2">Nenhuma notificação</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const notificationsHtml = notifications.map(notification => `
+        <div class="dropdown-item notification-item ${!notification.lida ? 'bg-light' : ''}" 
+             data-notification-id="${notification.id}"
+             onclick="markNotificationAsRead(${notification.id})"
+             style="cursor: pointer; border-left: ${!notification.lida ? '3px solid #007bff' : '3px solid transparent'};">
+            
+            <div class="d-flex align-items-start">
+                <div class="me-3">
+                    ${getNotificationIcon(notification.tipo)}
+                </div>
+                
+                <div class="flex-grow-1">
+                    <h6 class="fw-bold mb-1 ${!notification.lida ? 'text-primary' : ''}">${notification.titulo}</h6>
+                    <p class="mb-1 small">${notification.mensagem}</p>
+                    <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>${notification.dataCriacao}
+                    </small>
+                </div>
+                
+                ${!notification.lida ? '<div class="ms-2"><span class="badge bg-primary rounded-pill">Nova</span></div>' : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = notificationsHtml;
+}
+
+function getNotificationIcon(tipo) {
+    const icons = {
+        'DesafioEnviado': '<div class="bg-warning text-white rounded-circle p-2"><i class="fas fa-paper-plane fa-sm"></i></div>',
+        'DesafioRecebido': '<div class="bg-info text-white rounded-circle p-2"><i class="fas fa-handshake fa-sm"></i></div>',
+        'DesafioAceito': '<div class="bg-success text-white rounded-circle p-2"><i class="fas fa-check fa-sm"></i></div>',
+        'DesafioCancelado': '<div class="bg-danger text-white rounded-circle p-2"><i class="fas fa-times fa-sm"></i></div>'
+    };
+    
+    return icons[tipo] || '<div class="bg-secondary text-white rounded-circle p-2"><i class="fas fa-bell fa-sm"></i></div>';
+}
+
+async function markNotificationAsRead(notificationId) {
+    try {
+        const response = await fetch('/Home/MarkNotificationAsRead', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `notificationId=${notificationId}`
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Atualizar visualmente a notificação
+            const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            if (notificationElement) {
+                notificationElement.classList.remove('bg-light');
+                notificationElement.style.borderLeft = '3px solid transparent';
+                
+                // Remover badge "Nova"
+                const badge = notificationElement.querySelector('.badge');
+                if (badge) {
+                    badge.remove();
+                }
+                
+                // Remover classe text-primary do título
+                const title = notificationElement.querySelector('h6');
+                if (title) {
+                    title.classList.remove('text-primary');
+                }
+            }
+            
+            // Recarregar notificações para atualizar o contador
+            loadNotifications();
+        }
+    } catch (error) {
+        console.error('Erro ao marcar notificação como lida:', error);
+    }
+}
+
+async function markAllNotificationsAsRead() {
+    try {
+        const response = await fetch('/Home/MarkAllNotificationsAsRead', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Recarregar todas as notificações
+            loadNotifications();
+            
+            // Mostrar feedback visual
+            const badge = document.getElementById('notificationBadge');
+            badge.classList.add('d-none');
+        }
+    } catch (error) {
+        console.error('Erro ao marcar todas as notificações como lidas:', error);
+    }
+}
+</script>
+
+<style>
+.notification-item:hover {
+    background-color: #f8f9fa !important;
+}
+
+.notification-item {
+    transition: all 0.2s ease;
+    border-radius: 0;
+}
+
+#notificationsDropdown {
+    transition: all 0.2s ease;
+}
+
+#notificationsDropdown:hover {
+    transform: scale(1.05);
+}
+
+#notificationBadge {
+    font-size: 0.7rem;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    animation: pulse 2s infinite;
+}
+
+.pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+/* Scrollbar customizada para a lista de notificações */
+.dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>

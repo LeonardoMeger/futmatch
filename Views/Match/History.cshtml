@@ -1,0 +1,201 @@
+﻿@using FutMatchApp.Models.Enums
+@model List<FutMatchApp.Models.Reservation>
+@{
+    ViewData["Title"] = "Histórico de Partidas";
+}
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>
+                <i class="fas fa-history me-2"></i>
+                Histórico de Partidas
+            </h2>
+            <p class="text-muted mb-0">Suas partidas finalizadas</p>
+        </div>
+
+        <a class="btn btn-outline-primary" asp-controller="Notification" asp-action="Index">
+            <i class="fas fa-bell me-2"></i>Notificações
+        </a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="row">
+            @foreach (var match in Model)
+            {
+                var isTeam1 = ViewContext.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == match.UserId.ToString();
+                var myTeam = isTeam1 ? match.Team : match.OpponentTeam;
+                var opponentTeam = isTeam1 ? match.OpponentTeam : match.Team;
+                var myGoals = isTeam1 ? match.GolsTime1 : match.GolsTime2;
+                var opponentGoals = isTeam1 ? match.GolsTime2 : match.GolsTime1;
+                var myResult = isTeam1 ? match.ResultadoTime1 : match.ResultadoTime2;
+
+                var resultClass = myResult == ResultadoPartida.Vitoria ? "success" :
+                myResult == ResultadoPartida.Empate ? "warning" : "danger";
+                var resultIcon = myResult == ResultadoPartida.Vitoria ? "trophy" :
+                myResult == ResultadoPartida.Empate ? "handshake" : "times";
+                var resultText = myResult == ResultadoPartida.Vitoria ? "Vitória" :
+                myResult == ResultadoPartida.Empate ? "Empate" : "Derrota";
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100 shadow-sm border-@resultClass">
+                        <div class="card-header bg-@resultClass text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="fas fa-@resultIcon me-2"></i>
+                                    @resultText
+                                </span>
+                                <small>@match.DataHora.ToString("dd/MM/yyyy")</small>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
+                            <!-- Resultado da Partida -->
+                            <div class="text-center mb-3">
+                                <div class="row align-items-center">
+                                    <div class="col-4 text-center">
+                                        <h6 class="fw-bold text-primary">@myTeam?.Nome</h6>
+                                        <small class="text-muted">Seu Time</small>
+                                    </div>
+
+                                    <div class="col-4 text-center">
+                                        <h3 class="mb-0">
+                                            <span class="badge bg-primary">@myGoals</span>
+                                            <span class="mx-2">×</span>
+                                            <span class="badge bg-secondary">@opponentGoals</span>
+                                        </h3>
+                                    </div>
+
+                                    <div class="col-4 text-center">
+                                        <h6 class="fw-bold text-secondary">@opponentTeam?.Nome</h6>
+                                        <small class="text-muted">Adversário</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Detalhes da Partida -->
+                            <hr>
+                            <div class="row text-center small text-muted">
+                                <div class="col-4">
+                                    <i class="fas fa-clock"></i>
+                                    <br>@match.DataHora.ToString("HH:mm")
+                                </div>
+                                <div class="col-4">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <br>@match.Court.Nome
+                                </div>
+                                <div class="col-4">
+                                    <i class="fas fa-stopwatch"></i>
+                                    <br>@match.DuracaoHoras @(match.DuracaoHoras == 1 ? "hora" : "horas")
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(match.ObservacoesPartida))
+                            {
+                                <hr>
+                                <div class="alert alert-light mb-0">
+                                    <small>
+                                        <i class="fas fa-comment me-1"></i>
+                                        <strong>Observações:</strong> @match.ObservacoesPartida
+                                    </small>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="card-footer bg-light">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                Finalizada em @match.DataResultado?.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Suas Estatísticas
+                </h5>
+            </div>
+            <div class="card-body">
+                @{
+                    var totalMatches = Model.Count;
+                    var victories = Model.Count(m =>
+                    {
+                        var isTeam1 = ViewContext.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == m.UserId.ToString();
+                        var myResult = isTeam1 ? m.ResultadoTime1 : m.ResultadoTime2;
+                        return myResult == ResultadoPartida.Vitoria;
+                    });
+                    var draws = Model.Count(m =>
+                    {
+                        var isTeam1 = ViewContext.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == m.UserId.ToString();
+                        var myResult = isTeam1 ? m.ResultadoTime1 : m.ResultadoTime2;
+                        return myResult == ResultadoPartida.Empate;
+                    });
+                    var defeats = totalMatches - victories - draws;
+                    var winRate = totalMatches > 0 ? Math.Round((double)victories / totalMatches * 100, 1) : 0;
+                }
+
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="bg-light rounded p-3">
+                            <h3 class="text-primary mb-0">@totalMatches</h3>
+                            <small class="text-muted">Total de Partidas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="bg-success bg-opacity-10 rounded p-3">
+                            <h3 class="text-success mb-0">@victories</h3>
+                            <small class="text-muted">Vitórias</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="bg-warning bg-opacity-10 rounded p-3">
+                            <h3 class="text-warning mb-0">@draws</h3>
+                            <small class="text-muted">Empates</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="bg-danger bg-opacity-10 rounded p-3">
+                            <h3 class="text-danger mb-0">@defeats</h3>
+                            <small class="text-muted">Derrotas</small>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="text-center">
+                    <h5>Taxa de Vitórias: <span class="text-primary">@winRate%</span></h5>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: @((double)victories/totalMatches*100)%" title="Vitórias: @victories"></div>
+                        <div class="progress-bar bg-warning" role="progressbar"
+                             style="width: @((double)draws/totalMatches*100)%" title="Empates: @draws"></div>
+                        <div class="progress-bar bg-danger" role="progressbar"
+                             style="width: @((double)defeats/totalMatches*100)%" title="Derrotas: @defeats"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Nenhuma partida encontrada -->
+        <div class="text-center py-5">
+            <i class="fas fa-futbol fa-4x text-muted mb-4"></i>
+            <h4>Nenhuma partida finalizada</h4>
+            <p class="text-muted mb-4">Suas partidas aparecerão aqui após serem concluídas e os resultados confirmados.</p>
+            <a class="btn btn-primary" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-search me-2"></i>Buscar Quadras
+            </a>
+        </div>
+    }
+</div>
+}

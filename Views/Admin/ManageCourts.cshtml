@@ -1,0 +1,125 @@
+﻿<!-- Views/Admin/ManageCourts.cshtml -->
+@model IEnumerable<FutMatchApp.Models.Court>
+@{
+    ViewData["Title"] = "Gerenciar Quadras";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-cogs me-2"></i>Gerenciar Quadras</h2>
+    <div>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#discoverModal">
+            <i class="fab fa-google me-1"></i>Descobrir Quadras
+        </button>
+        <a class="btn btn-primary" href="#" data-bs-toggle="modal" data-bs-target="#addCourtModal">
+            <i class="fas fa-plus me-1"></i>Adicionar Manualmente
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    @foreach (var court in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">@court.Nome</h6>
+                    <div>
+                        @if (court.IsFromGoogle)
+                        {
+                            <span class="badge bg-success">Google</span>
+                        }
+                        <span class="badge @(court.Ativa ? "bg-primary" : "bg-secondary")">
+                            @(court.Ativa ? "Ativa" : "Inativa")
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">@court.Descricao</p>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            <i class="fas fa-map-marker-alt me-1"></i>@court.Localizacao
+                        </small>
+                    </p>
+                    <h6 class="text-success">R$ @court.PrecoPorHora.ToString("F2")/hora</h6>
+
+                    @if (court.GoogleRating.HasValue)
+                    {
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="fas fa-star text-warning me-1"></i>
+                                @court.GoogleRating.Value.ToString("F1") (Google)
+                            </small>
+                        </p>
+                    }
+                </div>
+                <div class="card-footer">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm @(court.Ativa ? "btn-outline-warning" : "btn-outline-success")">
+                            <i class="fas @(court.Ativa ? "fa-pause" : "fa-play")"></i>
+                        </button>
+                        @if (court.GooglePlaceId != null)
+                        {
+                            <a class="btn btn-sm btn-outline-info"
+                               href="https://www.google.com/maps/place/?q=place_id:@court.GooglePlaceId"
+                               target="_blank">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal para descobrir quadras -->
+<div class="modal fade" id="discoverModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fab fa-google me-2"></i>Descobrir Quadras no Google
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="DiscoverCourts" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Localização</label>
+                        <input type="text" name="location" class="form-control"
+                               placeholder="Ex: São Paulo, SP" required>
+                        <div class="form-text">
+                            Digite cidade, bairro ou endereço para buscar quadras próximas
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Raio de busca</label>
+                        <select name="radius" class="form-select">
+                            <option value="5000">5 km</option>
+                            <option value="10000" selected>10 km</option>
+                            <option value="15000">15 km</option>
+                            <option value="25000">25 km</option>
+                        </select>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        As quadras encontradas serão adicionadas como <strong>inativas</strong>
+                        para você revisar antes de disponibilizar para reservas.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-search me-1"></i>Buscar Quadras
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

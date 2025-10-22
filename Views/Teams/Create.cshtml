@@ -1,0 +1,267 @@
+﻿@model FutMatchApp.Models.ViewModels.CreateTeamViewModel
+@{
+    ViewData["Title"] = ViewBag.Team != null ? "Editar Time" : "Criar Time";
+    var isEdit = ViewBag.Team != null;
+    var team = ViewBag.Team as FutMatchApp.Models.Team;
+}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Profile" asp-action="Index">Perfil</a></li>
+        <li class="breadcrumb-item active">@(isEdit ? "Editar" : "Criar") Time</li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-@(isEdit ? "warning" : "success") text-white">
+                <h4 class="mb-0">
+                    <i class="fas fa-@(isEdit ? "edit" : "plus") me-2"></i>
+                    @(isEdit ? "Editar" : "Criar Novo") Time
+                </h4>
+            </div>
+            <div class="card-body">
+                <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(team?.Id)"
+                      method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                    <!-- Nome do Time -->
+                    <div class="mb-4">
+                        <label asp-for="Nome" class="form-label fw-bold">
+                            <i class="fas fa-users me-2 text-primary"></i>Nome do Time
+                        </label>
+                        <input asp-for="Nome" class="form-control form-control-lg"
+                               placeholder="Ex: Furacão FC, Tigres United..." maxlength="50">
+                        <span asp-validation-for="Nome" class="text-danger"></span>
+                    </div>
+
+                    <!-- Descrição -->
+                    <div class="mb-4">
+                        <label asp-for="Descricao" class="form-label fw-bold">
+                            <i class="fas fa-align-left me-2 text-info"></i>Descrição
+                        </label>
+                        <textarea asp-for="Descricao" class="form-control" rows="3"
+                                  placeholder="Descreva seu time, estilo de jogo, objetivos..." maxlength="200"></textarea>
+                        <span asp-validation-for="Descricao" class="text-danger"></span>
+                        <div class="form-text">Opcional - até 200 caracteres</div>
+                    </div>
+
+                    <!-- Foto/Escudo -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-image me-2 text-success"></i>Escudo/Logo do Time
+                        </label>
+
+                        @if (isEdit && !string.IsNullOrEmpty(team.FotoUrl))
+                        {
+                            <div class="mb-3">
+                                <img src="@team.FotoUrl" alt="Escudo atual" class="img-thumbnail"
+                                     style="max-height: 120px;">
+                                <small class="d-block text-muted">Imagem atual</small>
+                            </div>
+                        }
+
+                        <input asp-for="FotoEscudo" class="form-control" type="file"
+                               accept="image/*" onchange="previewImage(this)">
+                        <div class="form-text">
+                            Formatos aceitos: JPG, PNG, GIF (máx. 5MB)
+                            @(isEdit ? " - Deixe vazio para manter a imagem atual" : "")
+                        </div>
+
+                        <!-- Preview da nova imagem -->
+                        <div id="imagePreview" class="mt-2" style="display: none;">
+                            <img id="preview" class="img-thumbnail" style="max-height: 120px;">
+                            <small class="d-block text-muted">Nova imagem</small>
+                        </div>
+                    </div>
+
+                    <!-- Cores do Time -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="CorPrimaria" class="form-label fw-bold">
+                                <i class="fas fa-palette me-2 text-primary"></i>Cor Primária
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="CorPrimaria" type="color" class="form-control form-control-color">
+                                <input asp-for="CorPrimaria" type="text" class="form-control" placeholder="#007bff">
+                            </div>
+                            <span asp-validation-for="CorPrimaria" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="CorSecundaria" class="form-label fw-bold">
+                                <i class="fas fa-palette me-2 text-secondary"></i>Cor Secundária
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="CorSecundaria" type="color" class="form-control form-control-color">
+                                <input asp-for="CorSecundaria" type="text" class="form-control" placeholder="#ffffff">
+                            </div>
+                            <span asp-validation-for="CorSecundaria" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Preview das Cores -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Preview das Cores:</label>
+                        <div class="d-flex gap-3">
+                            <div class="text-center">
+                                <div id="colorPreview1" class="rounded-circle mx-auto mb-2"
+                                     style="width: 60px; height: 60px; background-color: #007bff; border: 3px solid #dee2e6;"></div>
+                                <small>Primária</small>
+                            </div>
+                            <div class="text-center">
+                                <div id="colorPreview2" class="rounded-circle mx-auto mb-2"
+                                     style="width: 60px; height: 60px; background-color: #ffffff; border: 3px solid #dee2e6;"></div>
+                                <small>Secundária</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Faixa de Idade -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="IdadeMinima" class="form-label fw-bold">
+                                <i class="fas fa-user-clock me-2 text-warning"></i>Idade Mínima
+                            </label>
+                            <select asp-for="IdadeMinima" class="form-select">
+                                <option value="">Sem limite mínimo</option>
+                                @for (int age = 16; age <= 60; age++)
+                                {
+                                    <option value="@age">@age anos</option>
+                                }
+                            </select>
+                            <span asp-validation-for="IdadeMinima" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="IdadeMaxima" class="form-label fw-bold">
+                                <i class="fas fa-user-clock me-2 text-danger"></i>Idade Máxima
+                            </label>
+                            <select asp-for="IdadeMaxima" class="form-select">
+                                <option value="">Sem limite máximo</option>
+                                @for (int age = 16; age <= 60; age++)
+                                {
+                                    <option value="@age">@age anos</option>
+                                }
+                            </select>
+                            <span asp-validation-for="IdadeMaxima" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Resumo da Faixa de Idade -->
+                    <div class="mb-4">
+                        <div class="alert alert-light">
+                            <strong><i class="fas fa-info-circle me-2"></i>Faixa de idade:</strong>
+                            <span id="ageRangeDisplay">Todas as idades</span>
+                        </div>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="d-flex justify-content-between">
+                        <a class="btn btn-secondary" asp-controller="Profile" asp-action="Index">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                        <button type="submit" class="btn btn-@(isEdit ? "warning" : "success") px-4">
+                            <i class="fas fa-@(isEdit ? "save" : "plus") me-2"></i>
+                            @(isEdit ? "Salvar Alterações" : "Criar Time")
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Preview da imagem
+        function previewImage(input) {
+            const preview = document.getElementById('imagePreview');
+            const img = document.getElementById('preview');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    img.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        // Atualizar preview das cores
+        function updateColorPreview() {
+            const cor1 = document.querySelector('input[name="CorPrimaria"][type="text"]').value || '#007bff';
+            const cor2 = document.querySelector('input[name="CorSecundaria"][type="text"]').value || '#ffffff';
+
+            document.getElementById('colorPreview1').style.backgroundColor = cor1;
+            document.getElementById('colorPreview2').style.backgroundColor = cor2;
+        }
+
+        // Sincronizar inputs de cor
+        document.querySelectorAll('input[name="CorPrimaria"]').forEach(input => {
+            input.addEventListener('input', function () {
+                const otherInput = document.querySelector('input[name="CorPrimaria"][type="' + (this.type === 'color' ? 'text' : 'color') + '"]');
+                otherInput.value = this.value;
+                updateColorPreview();
+            });
+        });
+
+        document.querySelectorAll('input[name="CorSecundaria"]').forEach(input => {
+            input.addEventListener('input', function () {
+                const otherInput = document.querySelector('input[name="CorSecundaria"][type="' + (this.type === 'color' ? 'text' : 'color') + '"]');
+                otherInput.value = this.value;
+                updateColorPreview();
+            });
+        });
+
+        // Atualizar display da faixa de idade
+        function updateAgeRangeDisplay() {
+            const minAge = document.querySelector('select[name="IdadeMinima"]').value;
+            const maxAge = document.querySelector('select[name="IdadeMaxima"]').value;
+            const display = document.getElementById('ageRangeDisplay');
+
+            if (!minAge && !maxAge) {
+                display.textContent = 'Todas as idades';
+            } else if (minAge && !maxAge) {
+                display.textContent = `A partir de ${minAge} anos`;
+            } else if (!minAge && maxAge) {
+                display.textContent = `Até ${maxAge} anos`;
+            } else {
+                display.textContent = `${minAge} - ${maxAge} anos`;
+            }
+        }
+
+        document.querySelector('select[name="IdadeMinima"]').addEventListener('change', updateAgeRangeDisplay);
+        document.querySelector('select[name="IdadeMaxima"]').addEventListener('change', updateAgeRangeDisplay);
+
+        // Inicializar
+        updateColorPreview();
+        updateAgeRangeDisplay();
+    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
+
+<style>
+    .form-control-color {
+        max-width: 60px;
+    }
+
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    #imagePreview img, .img-thumbnail {
+        transition: transform 0.3s ease;
+    }
+
+        #imagePreview img:hover, .img-thumbnail:hover {
+            transform: scale(1.05);
+        }
+</style>

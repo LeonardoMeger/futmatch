@@ -1,0 +1,605 @@
+﻿@model FutMatchApp.Models.ViewModels.HomeViewModel
+@{
+    ViewData["Title"] = "Início";
+}
+
+<!-- Hero Banner Compacto -->
+<div class="bg-primary text-white rounded-3 p-3 mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-9">
+            <h4 class="fw-bold mb-1">🏟️ Reserve sua quadra</h4>
+            <small class="opacity-75">Encontre e reserve quadras na sua região</small>
+        </div>
+        <div class="col-md-3 text-end">
+            @if (!User.Identity.IsAuthenticated)
+            {
+                <a class="btn btn-light btn-sm" asp-controller="Account" asp-action="Register">
+                    <i class="fas fa-user-plus me-1"></i>Cadastrar
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@if (User.Identity.IsAuthenticated)
+{
+    <!-- Sistema de Filtros Melhorado -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-search me-2 text-primary"></i>
+                Buscar Quadras por Localização e Período
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <form id="searchForm">
+                <div class="row g-3">
+                    <!-- Cidade -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-city text-primary me-2"></i>Cidade *
+                        </label>
+                        <input type="text"
+                               id="cidadeInput"
+                               class="form-control form-control-lg"
+                               value="@Model.SelectedCidade"
+                               placeholder="Ex: São Paulo"
+                               required>
+                        <small class="text-muted">Digite a cidade desejada</small>
+                    </div>
+
+                    <!-- Bairro -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-map-marker-alt text-success me-2"></i>Bairro
+                        </label>
+                        <input type="text"
+                               id="bairroInput"
+                               class="form-control form-control-lg"
+                               value="@Model.SelectedBairro"
+                               placeholder="Ex: Vila Madalena">
+                        <small class="text-muted">Opcional - para busca mais específica</small>
+                    </div>
+
+                    <!-- Data Início -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-calendar-alt text-warning me-2"></i>Data Início
+                        </label>
+                        <input type="date"
+                               id="dataInicioInput"
+                               class="form-control form-control-lg"
+                               value="@(Model.DataInicio?.ToString("yyyy-MM-dd"))"
+                               min="@DateTime.Now.ToString("yyyy-MM-dd")">
+                        <small class="text-muted">A partir de qual data</small>
+                    </div>
+
+                    <!-- Data Fim -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-calendar-check text-info me-2"></i>Data Fim
+                        </label>
+                        <input type="date"
+                               id="dataFimInput"
+                               class="form-control form-control-lg"
+                               value="@(Model.DataFim?.ToString("yyyy-MM-dd"))"
+                               min="@DateTime.Now.ToString("yyyy-MM-dd")">
+                        <small class="text-muted">Até qual data (mesmo dia = busca no dia)</small>
+                    </div>
+                </div>
+
+                <!-- Filtros Rápidos de Data -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">
+                            <i class="fas fa-clock text-secondary me-2"></i>Filtros Rápidos
+                        </label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange('hoje')">
+                                <i class="fas fa-calendar-day me-1"></i>Hoje
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange('amanha')">
+                                <i class="fas fa-calendar-plus me-1"></i>Amanhã
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange('semana')">
+                                <i class="fas fa-calendar-week me-1"></i>Próximos 7 dias
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange('fimSemana')">
+                                <i class="fas fa-calendar-alt me-1"></i>Final de Semana
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange('mes')">
+                                <i class="fas fa-calendar me-1"></i>Próximo Mês
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="row mt-4">
+                    <div class="col-12 text-center">
+                        <button type="button" class="btn btn-primary btn-lg px-5 me-2" onclick="buscarQuadras()">
+                            <i class="fas fa-search me-2"></i>Buscar Quadras
+                            <span class="spinner-border spinner-border-sm ms-2 d-none" id="searchSpinner"></span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-lg" onclick="limparFiltros()">
+                            <i class="fas fa-times me-1"></i>Limpar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados das Quadras -->
+    <div id="resultadosContainer">
+        @if (Model.GoogleCourts.Any())
+        {
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">
+                    <i class="fas fa-map-marker-alt text-success me-2"></i>
+                    Quadras encontradas
+                    @if (!string.IsNullOrEmpty(Model.SelectedCidade))
+                    {
+                        <span>em @Model.SelectedCidade</span>
+                        @if (!string.IsNullOrEmpty(Model.SelectedBairro))
+                        {
+                            <span>, @Model.SelectedBairro</span>
+                        }
+                    }
+                    @if (Model.DataInicio.HasValue)
+                    {
+                        @if (Model.DataInicio == Model.DataFim)
+                        {
+                            <span class="text-muted">• @Model.DataInicio?.ToString("dd/MM/yyyy")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">• @Model.DataInicio?.ToString("dd/MM") a @Model.DataFim?.ToString("dd/MM/yyyy")</span>
+                        }
+                    }
+                </h5>
+                <span class="badge bg-success fs-6">@Model.GoogleCourts.Count quadras</span>
+            </div>
+
+            <!-- Grid de Quadras -->
+            <div class="row g-3" id="quadrasGrid">
+                @foreach (var court in Model.GoogleCourts.Take(12))
+                {
+                    <div class="col-lg-3 col-md-4 col-sm-6">
+                        <div class="card h-100 shadow-sm court-card clickable-card"
+                             onclick="goToCourtDetails('@court.GooglePlaceId', '@Html.Raw(court.Nome)', '@Html.Raw(court.Localizacao)', @court.PrecoPorHora, @(court.Latitude ?? 0), @(court.Longitude ?? 0), @(court.GoogleRating ?? 0))">
+
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0 fw-bold text-truncate" title="@court.Nome">
+                                        @court.Nome
+                                    </h6>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="fab fa-google me-1"></i>Google
+                                    </span>
+                                </div>
+
+                                @if (court.GoogleRating.HasValue)
+                                {
+                                    <div class="mb-2">
+                                        <span class="text-warning">
+                                            @for (int i = 1; i <= 5; i++)
+                                            {
+                                                if (i <= Math.Floor(court.GoogleRating.Value))
+                                                {
+                                                    <i class="fas fa-star"></i>
+                                                }
+                                                else if (i <= court.GoogleRating.Value)
+                                                {
+                                                    <i class="fas fa-star-half-alt"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="far fa-star"></i>
+                                                }
+                                            }
+                                        </span>
+                                        <small class="text-muted ms-1">@court.GoogleRating.Value.ToString("F1")</small>
+                                    </div>
+                                }
+
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    @(court.Localizacao.Length > 40 ? court.Localizacao.Substring(0, 40) + "..." : court.Localizacao)
+                                </p>
+
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="fw-bold text-success">R$ @court.PrecoPorHora.ToString("F0")/h</span>
+                                    <a href="https://www.google.com/maps/place/?q=place_id:@court.GooglePlaceId"
+                                       target="_blank"
+                                       class="btn btn-outline-info btn-sm"
+                                       onclick="event.stopPropagation()">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="card-footer bg-transparent p-3 pt-0">
+                                <small class="text-muted text-center d-block">
+                                    <i class="fas fa-mouse-pointer me-1"></i>Clique para ver detalhes
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(Model.SelectedCidade))
+        {
+            <!-- Estado Vazio -->
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-search fa-3x text-muted"></i>
+                </div>
+                <h5 class="text-muted">Nenhuma quadra encontrada</h5>
+                <p class="text-muted">
+                    Não encontramos quadras em <strong>@Model.SelectedCidade</strong>
+                    @if (!string.IsNullOrEmpty(Model.SelectedBairro))
+                    {
+                        <span>, <strong>@Model.SelectedBairro</strong></span>
+                    }
+                    @if (Model.DataInicio.HasValue)
+                    {
+                        @if (Model.DataInicio == Model.DataFim)
+                        {
+                            <span> para o dia <strong>@Model.DataInicio?.ToString("dd/MM/yyyy")</strong></span>
+                        }
+                        else
+                        {
+                            <span> para o período de <strong>@Model.DataInicio?.ToString("dd/MM")</strong> a <strong>@Model.DataFim?.ToString("dd/MM/yyyy")</strong></span>
+                        }
+                    }.<br>
+                    Tente buscar por uma região diferente ou outro período.
+                </p>
+                <button class="btn btn-outline-primary" onclick="document.getElementById('cidadeInput').focus()">
+                    <i class="fas fa-search me-1"></i>Tentar Nova Busca
+                </button>
+            </div>
+        }
+        else
+        {
+            <!-- Estado Inicial -->
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-map-marker-alt fa-3x text-primary"></i>
+                </div>
+                <h5 class="text-primary">Digite uma cidade para buscar quadras</h5>
+                <p class="text-muted">
+                    Use os filtros acima para encontrar quadras próximas a você.<br>
+                    @if (Model.User != null && !string.IsNullOrEmpty(Model.UserLocation))
+                    {
+                        <span>Sua cidade cadastrada: <strong>@Model.UserLocation</strong></span>
+                    }
+                </p>
+            </div>
+        }
+    </div>
+
+    <!-- Quadras do Sistema -->
+    @if (Model.Courts.Any())
+    {
+        <div class="mt-5">
+            <h5 class="fw-bold mb-3">
+                <i class="fas fa-shield-alt text-primary me-2"></i>
+                Quadras Verificadas do Sistema
+            </h5>
+
+            <div class="row g-3">
+                @foreach (var court in Model.Courts.Take(8))
+                {
+                    <div class="col-lg-3 col-md-4 col-sm-6">
+                        <div class="card h-100 shadow-sm border-primary">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0 fw-bold">@court.Nome</h6>
+                                    <span class="badge bg-primary">Verificada</span>
+                                </div>
+
+                                <p class="text-muted small mb-2">@court.Descricao</p>
+                                <p class="text-muted small mb-2">
+                                    <i class="fas fa-map-marker-alt me-1"></i>@court.Localizacao
+                                </p>
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-primary">R$ @court.PrecoPorHora.ToString("F0")/h</span>
+                                </div>
+                            </div>
+
+                            <div class="card-footer bg-transparent p-3 pt-0">
+                                <a class="btn btn-primary w-100 btn-sm" asp-action="CourtDetails" asp-route-id="@court.Id">
+                                    <i class="fas fa-calendar-alt me-1"></i>Ver Horários
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+}
+else
+{
+    <!-- Para usuários não logados -->
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-futbol fa-4x text-primary"></i>
+        </div>
+        <h3 class="fw-bold mb-3">Encontre quadras próximas a você</h3>
+        <p class="text-muted mb-4">
+            Cadastre-se para descobrir e reservar quadras na sua região
+        </p>
+        <div>
+            <a class="btn btn-primary btn-lg me-2" asp-controller="Account" asp-action="Register">
+                <i class="fas fa-user-plus me-2"></i>Criar Conta
+            </a>
+            <a class="btn btn-outline-primary btn-lg" asp-controller="Account" asp-action="Login">
+                <i class="fas fa-sign-in-alt me-2"></i>Entrar
+            </a>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Função para definir ranges de data rapidamente
+        function setDateRange(tipo) {
+            const dataInicioInput = document.getElementById('dataInicioInput');
+            const dataFimInput = document.getElementById('dataFimInput');
+            const hoje = new Date();
+
+            switch (tipo) {
+                case 'hoje':
+                    dataInicioInput.value = formatDate(hoje);
+                    dataFimInput.value = formatDate(hoje);
+                    break;
+
+                case 'amanha':
+                    const amanha = new Date();
+                    amanha.setDate(hoje.getDate() + 1);
+                    dataInicioInput.value = formatDate(amanha);
+                    dataFimInput.value = formatDate(amanha);
+                    break;
+
+                case 'semana':
+                    const proximaSemana = new Date();
+                    proximaSemana.setDate(hoje.getDate() + 7);
+                    dataInicioInput.value = formatDate(hoje);
+                    dataFimInput.value = formatDate(proximaSemana);
+                    break;
+
+                case 'fimSemana':
+                    const sabado = new Date();
+                    const diasParaSabado = 6 - hoje.getDay();
+                    sabado.setDate(hoje.getDate() + diasParaSabado);
+
+                    const domingo = new Date(sabado);
+                    domingo.setDate(sabado.getDate() + 1);
+
+                    dataInicioInput.value = formatDate(sabado);
+                    dataFimInput.value = formatDate(domingo);
+                    break;
+
+                case 'mes':
+                    const proximoMes = new Date();
+                    proximoMes.setMonth(hoje.getMonth() + 1);
+                    dataInicioInput.value = formatDate(hoje);
+                    dataFimInput.value = formatDate(proximoMes);
+                    break;
+            }
+
+            // Auto-buscar após definir o range
+            setTimeout(() => {
+                const cidade = document.getElementById('cidadeInput').value.trim();
+                if (cidade) {
+                    buscarQuadras();
+                }
+            }, 300);
+        }
+
+        // Função para formatar data para input[type="date"]
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Validação das datas
+        document.getElementById('dataInicioInput')?.addEventListener('change', function () {
+            const dataInicio = new Date(this.value);
+            const dataFimInput = document.getElementById('dataFimInput');
+            const dataFim = new Date(dataFimInput.value);
+
+            // Se data fim for menor que data início, ajustar
+            if (dataFim < dataInicio) {
+                dataFimInput.value = this.value;
+            }
+        });
+
+        document.getElementById('dataFimInput')?.addEventListener('change', function () {
+            const dataFim = new Date(this.value);
+            const dataInicioInput = document.getElementById('dataInicioInput');
+            const dataInicio = new Date(dataInicioInput.value);
+
+            // Se data fim for menor que data início, ajustar data início
+            if (dataFim < dataInicio) {
+                dataInicioInput.value = this.value;
+            }
+        });
+
+        // Buscar quadras por cidade/bairro e período
+        async function buscarQuadras() {
+            const cidade = document.getElementById('cidadeInput').value.trim();
+            const bairro = document.getElementById('bairroInput').value.trim();
+            const dataInicio = document.getElementById('dataInicioInput').value;
+            const dataFim = document.getElementById('dataFimInput').value;
+            const spinner = document.getElementById('searchSpinner');
+
+            if (!cidade) {
+                alert('Digite uma cidade para buscar quadras');
+                document.getElementById('cidadeInput').focus();
+                return;
+            }
+
+            // Mostrar loading
+            spinner.classList.remove('d-none');
+
+            try {
+                // Construir URL com parâmetros
+                const params = new URLSearchParams();
+                params.append('cidade', cidade);
+                if (bairro) params.append('bairro', bairro);
+                if (dataInicio) params.append('dataInicio', dataInicio);
+                if (dataFim) params.append('dataFim', dataFim);
+
+                // Fazer busca das quadras via AJAX
+                const response = await fetch(`@Url.Action("GetQuadras")?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // Redirecionar para mostrar resultados
+                    window.location.href = `@Url.Action("Index")?${params.toString()}`;
+                } else {
+                    alert(result.message || 'Erro ao buscar quadras');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro de conexão. Tente novamente.');
+            } finally {
+                spinner.classList.add('d-none');
+            }
+        }
+
+        // Limpar todos os filtros
+        function limparFiltros() {
+            document.getElementById('cidadeInput').value = '';
+            document.getElementById('bairroInput').value = '';
+            document.getElementById('dataInicioInput').value = '';
+            document.getElementById('dataFimInput').value = '';
+
+            // Voltar para página inicial
+            window.location.href = '@Url.Action("Index")';
+        }
+
+        // Ir para detalhes da quadra
+        function goToCourtDetails(placeId, name, location, price, lat, lng, rating) {
+            const params = new URLSearchParams({
+                placeId: placeId,
+                name: name,
+                location: location,
+                price: price,
+                lat: lat || 0,
+                lng: lng || 0,
+                rating: rating || 0
+            });
+
+            window.location.href = `@Url.Action("GoogleCourtDetails")?${params.toString()}`;
+        }
+
+        // Enter para buscar
+        document.getElementById('cidadeInput')?.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarQuadras();
+            }
+        });
+
+        document.getElementById('bairroInput')?.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarQuadras();
+            }
+        });
+
+        // Buscar quadras quando cidade mudar (com delay)
+        let searchTimeout;
+        document.getElementById('cidadeInput')?.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            const cidade = this.value.trim();
+
+            if (cidade.length >= 3) {
+                searchTimeout = setTimeout(() => {
+                    // Buscar quadras automaticamente após 1 segundo se tiver data definida
+                    const dataInicio = document.getElementById('dataInicioInput').value;
+                    if (dataInicio) {
+                        // buscarQuadras();
+                    }
+                }, 1000);
+            }
+        });
+
+        // Inicializar com data de hoje se não tiver nenhuma definida
+        document.addEventListener('DOMContentLoaded', function () {
+            const dataInicioInput = document.getElementById('dataInicioInput');
+            const dataFimInput = document.getElementById('dataFimInput');
+
+            if (!dataInicioInput.value) {
+                const hoje = new Date();
+                dataInicioInput.value = formatDate(hoje);
+                dataFimInput.value = formatDate(hoje);
+            }
+        });
+    </script>
+}
+
+<style>
+    .court-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .court-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+
+    .clickable-card {
+        cursor: pointer;
+    }
+
+        .clickable-card:hover .card-title {
+            color: #007bff;
+        }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        border: none;
+    }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            transform: translateY(-1px);
+        }
+
+    .btn-outline-primary:hover {
+        transform: translateY(-1px);
+    }
+
+    /* Melhorar aparência dos inputs de data */
+    input[type="date"] {
+        position: relative;
+    }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            background: transparent;
+            bottom: 0;
+            color: transparent;
+            cursor: pointer;
+            height: auto;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: auto;
+        }
+</style>

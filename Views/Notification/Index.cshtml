@@ -1,0 +1,564 @@
+﻿@using FutMatchApp.Models.Enums
+@model List<FutMatchApp.Models.Notification>
+@{
+    ViewData["Title"] = "Minhas Notificações";
+}
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>
+                <i class="fas fa-bell me-2"></i>
+                Minhas Notificações
+            </h2>
+            <p class="text-muted mb-0">Central de notificações e ações</p>
+        </div>
+        
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="markAllAsRead()">
+                <i class="fas fa-check-double me-2"></i>Marcar Todas como Lidas
+            </button>
+            <a class="btn btn-primary" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-home me-2"></i>Início
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body py-3">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="filter" id="all" autocomplete="off" checked>
+                        <label class="btn btn-outline-primary" for="all" onclick="filterNotifications('all')">
+                            <i class="fas fa-list me-1"></i>Todas
+                        </label>
+
+                        <input type="radio" class="btn-check" name="filter" id="unread" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="unread" onclick="filterNotifications('unread')">
+                            <i class="fas fa-bell me-1"></i>Não Lidas
+                        </label>
+
+                        <input type="radio" class="btn-check" name="filter" id="challenges" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="challenges" onclick="filterNotifications('challenges')">
+                            <i class="fas fa-handshake me-1"></i>Desafios
+                        </label>
+
+                        <input type="radio" class="btn-check" name="filter" id="matches" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="matches" onclick="filterNotifications('matches')">
+                            <i class="fas fa-futbol me-1"></i>Partidas
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="text-muted">Total: <strong id="totalCount">@Model.Count</strong> notificações</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Notificações -->
+    <div id="notificationsList">
+        @if (Model.Any())
+        {
+            @foreach (var notification in Model)
+            {
+                <div class="card mb-3 notification-card @(!notification.Lida ? "border-primary" : "")" 
+                     data-notification-id="@notification.Id"
+                     data-type="@notification.Tipo"
+                     data-read="@notification.Lida.ToString().ToLower()">
+                    
+                    <div class="card-body">
+                        <div class="row align-items-start">
+                            <!-- Ícone e Indicador -->
+                            <div class="col-auto">
+                                <div class="notification-icon-large">
+                                    @switch (notification.Tipo)
+                                    {
+                                        case TipoNotificacao.DesafioEnviado:
+                                            <div class="icon-wrapper-large bg-warning">
+                                                <i class="fas fa-paper-plane text-white"></i>
+                                            </div>
+                                            break;
+                                        case TipoNotificacao.DesafioRecebido:
+                                            <div class="icon-wrapper-large bg-info">
+                                                <i class="fas fa-handshake text-white"></i>
+                                            </div>
+                                            break;
+                                        case TipoNotificacao.DesafioAceito:
+                                        case TipoNotificacao.PartidaConfirmada:
+                                            <div class="icon-wrapper-large bg-success">
+                                                <i class="fas fa-check text-white"></i>
+                                            </div>
+                                            break;
+                                        case TipoNotificacao.DesafioRejeitado:
+                                            <div class="icon-wrapper-large bg-danger">
+                                                <i class="fas fa-times text-white"></i>
+                                            </div>
+                                            break;
+                                        case TipoNotificacao.ResultadoPartida:
+                                            <div class="icon-wrapper-large bg-dark">
+                                                <i class="fas fa-trophy text-white"></i>
+                                            </div>
+                                            break;
+                                        case TipoNotificacao.LembretePartida:
+                                            <div class="icon-wrapper-large bg-secondary">
+                                                <i class="fas fa-bell text-white"></i>
+                                            </div>
+                                            break;
+                                    }
+                                </div>
+                            </div>
+                            
+                            <!-- Conteúdo da Notificação -->
+                            <div class="col">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold @(!notification.Lida ? "text-primary" : "") mb-0">
+                                        @notification.Titulo
+                                        @if (!notification.Lida)
+                                        {
+                                            <span class="badge bg-primary ms-2">Nova</span>
+                                        }
+                                    </h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        @notification.DataCriacao.ToString("dd/MM/yyyy HH:mm")
+                                    </small>
+                                </div>
+                                
+                                <p class="text-muted mb-2">@notification.Mensagem</p>
+                                
+                                <!-- Detalhes da Reserva (se existir) -->
+                                @if (notification.Reservation != null)
+                                {
+                                    <div class="border-start border-3 border-light ps-3 mb-3">
+                                        <small class="text-muted">
+                                            <strong>Quadra:</strong> @notification.Reservation.Court.Nome<br>
+                                            <strong>Data:</strong> @notification.Reservation.DataHora.ToString("dd/MM/yyyy HH:mm")
+                                        </small>
+                                    </div>
+                                }
+                                
+                                <!-- Ações -->
+                                <div class="d-flex gap-2 flex-wrap">
+                                    @if (notification.PermiteAcao && notification.Tipo == TipoNotificacao.DesafioRecebido)
+                                    {
+                                        <button class="btn btn-success btn-sm" 
+                                                onclick="handleAction(@notification.Id, 'accept')">
+                                            <i class="fas fa-check me-1"></i>@notification.AcaoPositiva
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" 
+                                                onclick="handleAction(@notification.Id, 'reject')">
+                                            <i class="fas fa-times me-1"></i>@notification.AcaoNegativa
+                                        </button>
+                                    }
+                                    
+                                    @if (notification.Tipo == TipoNotificacao.ResultadoPartida && notification.ReservationId.HasValue)
+                                    {
+                                        <a class="btn btn-outline-primary btn-sm" 
+                                           asp-controller="Match" 
+                                           asp-action="ConfirmResult" 
+                                           asp-route-reservationId="@notification.ReservationId">
+                                            <i class="fas fa-clipboard-list me-1"></i>Confirmar Resultado
+                                        </a>
+                                    }
+                                    
+                                    @if (!notification.Lida)
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm" 
+                                                onclick="markAsRead(@notification.Id)">
+                                            <i class="fas fa-eye me-1"></i>Marcar como Lida
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <!-- Nenhuma notificação -->
+            <div class="text-center py-5">
+                <i class="fas fa-bell-slash fa-4x text-muted mb-4"></i>
+                <h4>Nenhuma notificação</h4>
+                <p class="text-muted mb-4">Suas notificações aparecerão aqui quando houver novidades.</p>
+                <a class="btn btn-primary" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-search me-2"></i>Buscar Quadras
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Filtrar notificações
+        function filterNotifications(type) {
+            const cards = document.querySelectorAll('.notification-card');
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                const notificationType = card.dataset.type;
+                const isRead = card.dataset.read === 'true';
+                let shouldShow = true;
+                
+                switch(type) {
+                    case 'unread':
+                        shouldShow = !isRead;
+                        break;
+                    case 'challenges':
+                        shouldShow = notificationType.includes('Desafio');
+                        break;
+                    case 'matches':
+                        shouldShow = notificationType.includes('Partida') || notificationType.includes('Resultado');
+                        break;
+                    case 'all':
+                    default:
+                        shouldShow = true;
+                        break;
+                }
+                
+                if (shouldShow) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            document.getElementById('totalCount').textContent = visibleCount;
+        }
+        
+        // Marcar como lida
+        async function markAsRead(notificationId) {
+            try {
+                const response = await fetch('/Notification/MarkAsRead', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `notificationId=${notificationId}`
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showToast('Erro ao processar ação', 'error');
+            }
+        }
+        
+        // Função para mostrar toast
+        function showToast(message, type = 'info') {
+            const existingToast = document.getElementById('actionToast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toastClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+            
+            const toastHtml = `
+                <div class="toast align-items-center text-white ${toastClass} border-0 position-fixed" 
+                     id="actionToast" 
+                     role="alert" 
+                     style="top: 20px; right: 20px; z-index: 1055;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" 
+                                data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastElement = document.getElementById('actionToast');
+            const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+            toast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                toastElement.remove();
+            });
+        }
+        
+        // Auto refresh das notificações a cada 30 segundos
+        setInterval(function() {
+            // Recarregar apenas se não houver ações pendentes
+            if (!document.querySelector('.btn[disabled]')) {
+                location.reload();
+            }
+        }, 30000);
+        
+        // Marcar notificação como lida ao clicar (exceto nos botões de ação)
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.notification-card') && 
+                !e.target.closest('button') && 
+                !e.target.closest('a')) {
+                
+                const card = e.target.closest('.notification-card');
+                const notificationId = card.dataset.notificationId;
+                const isRead = card.dataset.read === 'true';
+                
+                if (!isRead) {
+                    markAsRead(notificationId);
+                }
+            }
+        });
+    </script>
+}
+
+<style>
+.notification-card {
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+    cursor: pointer;
+}
+
+.notification-card.border-primary {
+    border-left-color: #0d6efd !important;
+    background-color: #f8f9ff;
+}
+
+.notification-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.icon-wrapper-large {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.notification-icon-large {
+    position: relative;
+}
+
+.btn-group .btn-check:checked + .btn {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+/* Animação para notificações não lidas */
+.notification-card[data-read="false"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(45deg, #0d6efd, #6610f2);
+    animation: pulse-border 2s infinite;
+}
+
+.pulse-border {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Efeitos de hover nos botões de ação */
+.notification-card .btn {
+    transition: all 0.2s ease;
+}
+
+.notification-card .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Loading state para botões */
+.btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsividade */
+@@media only screen and(max-width: 768px) {
+    .btn-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.375rem !important;
+        font-size: 0.875rem;
+    }
+    
+    .icon-wrapper-large {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .notification-card .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+@@media (max-width: 576px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .notification-card {
+        margin-bottom: 1rem;
+    }
+    
+    .notification-card .row {
+        margin: 0;
+    }
+    
+    .notification-card .col-auto,
+    .notification-card .col {
+        padding: 0.5rem;
+    }
+}
+
+/* Estados especiais para tipos de notificação */
+.notification-card[data-type="DesafioRecebido"] {
+    border-left-color: #17a2b8 !important;
+    background: linear-gradient(90deg, #e8f7f8 0%, #ffffff 10%);
+}
+
+.notification-card[data-type="DesafioEnviado"] {
+    border-left-color: #ffc107 !important;
+    background: linear-gradient(90deg, #fff9e6 0%, #ffffff 10%);
+}
+
+.notification-card[data-type="PartidaConfirmada"] {
+    border-left-color: #28a745 !important;
+    background: linear-gradient(90deg, #e8f5e8 0%, #ffffff 10%);
+}
+
+.notification-card[data-type="DesafioRejeitado"] {
+    border-left-color: #dc3545 !important;
+    background: linear-gradient(90deg, #f8e6e6 0%, #ffffff 10%);
+}
+
+.notification-card[data-type="ResultadoPartida"] {
+    border-left-color: #6c757d !important;
+    background: linear-gradient(90deg, #eeeeee 0%, #ffffff 10%);
+}
+
+/* Animação de entrada para novas notificações */
+.notification-card {
+    animation: slideInUp 0.3s ease-out;
+}
+
+.slideInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Badge personalizado */
+.badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+}
+
+/* Toast customizado */
+.toast {
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+/* Scrollbar personalizada */
+.container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+<style>
+.notification-card {
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+
+.notification-card.border-primary {
+    border-left-color: #0d6efd !important;
+    background-color: #f8f9ff;
+}
+
+.notification-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.icon-wrapper-large {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.notification-icon-large {
+    position: relative;
+}
+
+.btn-group .btn-check:checked + .btn {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+@@media only screen and(max-width: 768px) {
+    .btn-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        border-radius: 0.375rem !important;
+    }
+}

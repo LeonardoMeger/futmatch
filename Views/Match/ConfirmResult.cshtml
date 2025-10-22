@@ -1,0 +1,219 @@
+﻿@using FutMatchApp.Models.Enums
+@model FutMatchApp.Models.ViewModels.ConfirmResultViewModel
+@{
+    ViewData["Title"] = "Confirmar Resultado da Partida";
+}
+
+<div class="container mt-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Início</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Notification" asp-action="Index">Notificações</a></li>
+            <li class="breadcrumb-item active">Confirmar Resultado</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header da Partida -->
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-futbol me-2"></i>
+                        Confirmar Resultado da Partida
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-5">
+                            <h4 class="fw-bold text-primary">@Model.MyTeamName</h4>
+                            <small class="text-muted">Seu Time</small>
+                        </div>
+                        <div class="col-2 d-flex align-items-center justify-content-center">
+                            <span class="badge bg-dark fs-6">VS</span>
+                        </div>
+                        <div class="col-5">
+                            <h4 class="fw-bold text-success">@Model.OpponentTeamName</h4>
+                            <small class="text-muted">Time Adversário</small>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <div class="text-center">
+                        <p><strong>Data:</strong> @Model.Reservation.DataHora.ToString("dd/MM/yyyy")</p>
+                        <p><strong>Horário:</strong> @Model.Reservation.DataHora.ToString("HH:mm")</p>
+                        <p><strong>Quadra:</strong> @Model.Reservation.Court.Nome</p>
+                        <p><strong>Local:</strong> @Model.Reservation.Court.Localizacao</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulário de Resultado -->
+            @if (!Model.HasMyResult)
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i>
+                            Informar Resultado
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="resultForm">
+                            <input type="hidden" name="reservationId" value="@Model.Reservation.Id" />
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Resultado para seu time</label>
+                                    <select name="resultado" class="form-select" required>
+                                        <option value="">Selecione o resultado</option>
+                                        <option value="1">Vitória</option>
+                                        <option value="3">Empate</option>
+                                        <option value="2">Derrota</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-semibold">Gols marcados pelo seu time</label>
+                                    <input type="number" name="gols" class="form-control" min="0" max="50" required />
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Importante:</strong> Após confirmar, o time adversário também precisará informar o resultado.
+                                Apenas quando ambos os times confirmarem, a partida será finalizada.
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-check me-2"></i>Confirmar Resultado
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Resultado já informado -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Seu Resultado Confirmado
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center">
+                            <h4 class="mb-3">
+                                Você informou:
+                                <span class="badge bg-primary fs-6">
+                                    @(Model.MyResult == ResultadoPartida.Vitoria ? "Vitória" :
+                                        Model.MyResult == ResultadoPartida.Empate ? "Empate" : "Derrota")
+                                </span>
+                            </h4>
+                            <p class="fs-5">Gols: <strong>@Model.MyGoals</strong></p>
+
+                            @if (Model.HasOpponentResult)
+                            {
+                                <hr class="my-4">
+                                <h5 class="text-success">
+                                    <i class="fas fa-trophy me-2"></i>
+                                    Partida Finalizada!
+                                </h5>
+                                <div class="row mt-3">
+                                    <div class="col-6 text-center">
+                                        <h6>@Model.MyTeamName</h6>
+                                        <span class="badge bg-primary fs-4">@Model.MyGoals</span>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <h6>@Model.OpponentTeamName</h6>
+                                        <span class="badge bg-success fs-4">@Model.OpponentGoals</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <hr class="my-4">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-clock me-2"></i>
+                                    Aguardando o time <strong>@Model.OpponentTeamName</strong> confirmar o resultado.
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Botões de Navegação -->
+            <div class="d-flex justify-content-between mt-4">
+                <a class="btn btn-secondary" asp-controller="Notification" asp-action="Index">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar às Notificações
+                </a>
+
+                <a class="btn btn-outline-primary" asp-controller="Match" asp-action="History">
+                    <i class="fas fa-history me-2"></i>Ver Histórico
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('resultForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+
+            // Loading state
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Confirmando...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = await fetch('@Url.Action("ConfirmResult", "Match")', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Mostrar sucesso
+                    showAlert('success', result.message);
+
+                    // Recarregar página após 2 segundos
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showAlert('danger', result.message);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                showAlert('danger', 'Erro ao confirmar resultado. Tente novamente.');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showAlert(type, message) {
+            const alertHtml = `
+                        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+
+            const container = document.querySelector('.container');
+            container.insertAdjacentHTML('afterbegin', alertHtml);
+        }
+    </script>
+}

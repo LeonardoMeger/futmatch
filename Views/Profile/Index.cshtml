@@ -1,0 +1,448 @@
+﻿@using FutMatchApp.Models.Enums
+@model FutMatchApp.Models.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "Meu Perfil";
+}
+
+<div class="row">
+    <!-- Coluna da Esquerda - Informações e Times -->
+    <div class="col-md-4">
+        <!-- Informações Pessoais -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-user me-2"></i>Informações Pessoais</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Nome:</strong> @Model.User.Nome</p>
+                <p><strong>Email:</strong> @Model.User.Email</p>
+                <p><strong>Telefone:</strong> @(Model.User.Telefone ?? "Não informado")</p>
+                <p><strong>Cidade:</strong> @(Model.User.Cidade ?? "Não informado")</p>
+                <p><strong>Membro desde:</strong> @Model.User.DataCriacao.ToString("dd/MM/yyyy")</p>
+            </div>
+
+            <div class="d-flex justify-content-center justify-content-center mb-3">
+                <a asp-action="Edit" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Editar Dados Pessoais
+                </a>
+            </div>
+
+        </div>
+
+        <!-- NOVA SEÇÃO: Informações do Time Selecionado -->
+        @if (Model.SelectedTeam != null && Model.TeamStats != null)
+        {
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star me-2"></i>Time Ativo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Escudo e Nome do Time -->
+                    <div class="text-center mb-3">
+                        @if (!string.IsNullOrEmpty(Model.SelectedTeam.FotoUrl))
+                        {
+                            <img src="@Model.SelectedTeam.FotoUrl" alt="Escudo @Model.SelectedTeam.Nome"
+                                 class="rounded-circle mb-2" style="width: 80px; height: 80px; object-fit: cover;">
+                        }
+                        else
+                        {
+                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold mx-auto mb-2"
+                                 style="width: 80px; height: 80px; background-color: @(Model.SelectedTeam.CorPrimaria ?? "#007bff"); font-size: 1.5rem;">
+                                @Model.SelectedTeam.Nome.Substring(0, Math.Min(2, Model.SelectedTeam.Nome.Length)).ToUpper()
+                            </div>
+                        }
+                        <h5 class="fw-bold mb-1">@Model.SelectedTeam.Nome</h5>
+                        @if (!string.IsNullOrEmpty(Model.SelectedTeam.Descricao))
+                        {
+                            <p class="text-muted small mb-0">@Model.SelectedTeam.Descricao</p>
+                        }
+                    </div>
+
+                    <!-- Estatísticas Principais -->
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="bg-light rounded p-2">
+                                <h4 class="text-primary mb-0">@Model.TeamStats.TotalGames</h4>
+                                <small class="text-muted">Jogos</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-light rounded p-2">
+                                <h4 class="text-success mb-0">@Model.TeamStats.WinRate%</h4>
+                                <small class="text-muted">Taxa de Vitória</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estatísticas Detalhadas -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="bg-success bg-opacity-10 rounded p-2">
+                                <h5 class="text-success mb-0">@Model.TeamStats.Victories</h5>
+                                <small class="text-muted">Vitórias</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-warning bg-opacity-10 rounded p-2">
+                                <h5 class="text-warning mb-0">@Model.TeamStats.Draws</h5>
+                                <small class="text-muted">Empates</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-danger bg-opacity-10 rounded p-2">
+                                <h5 class="text-danger mb-0">@Model.TeamStats.Defeats</h5>
+                                <small class="text-muted">Derrotas</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gols e Performance -->
+                    <div class="border-top pt-3">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <span class="fw-bold text-primary">@Model.TeamStats.GoalsScored</span>
+                                <small class="text-muted d-block">Gols Feitos</small>
+                            </div>
+                            <div class="col-6">
+                                <span class="fw-bold text-danger">@Model.TeamStats.GoalsConceded</span>
+                                <small class="text-muted d-block">Gols Sofridos</small>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-2">
+                            <span class="badge bg-@(Model.TeamStats.GoalDifference >= 0 ? "success" : "danger") fs-6">
+                                Saldo: @(Model.TeamStats.GoalDifference >= 0 ? "+" : "")@Model.TeamStats.GoalDifference
+                            </span>
+                        </div>
+
+                        <!-- Indicador de Performance -->
+                        <div class="text-center mt-2">
+                            <small class="text-muted">Performance: </small>
+                            <span class="badge bg-@(Model.TeamStats.PerformanceStatus == "Excelente" ? "success" : Model.TeamStats.PerformanceStatus == "Boa" ? "warning" : "secondary")">
+                                @Model.TeamStats.PerformanceStatus
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Meus Times -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Meus Times</h5>
+                <a class="btn btn-light btn-sm" asp-controller="Teams" asp-action="Create">
+                    <i class="fas fa-plus me-1"></i>Novo
+                </a>
+            </div>
+            <div class="card-body">
+                @if (Model.UserTeams.Any())
+                {
+                    @foreach (var team in Model.UserTeams)
+                    {
+                        <div class="card mb-3 @(Model.SelectedTeam?.Id == team.Id ? "border-warning" : "")">
+                            <div class="card-body p-3">
+                                <div class="row align-items-center">
+                                    <!-- Escudo do Time -->
+                                    <div class="col-auto">
+                                        @if (!string.IsNullOrEmpty(team.FotoUrl))
+                                        {
+                                            <img src="@team.FotoUrl" alt="Escudo @team.Nome"
+                                                 class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
+                                                 style="width: 50px; height: 50px; background-color: @(team.CorPrimaria ?? "#007bff");">
+                                                @team.Nome.Substring(0, Math.Min(2, team.Nome.Length)).ToUpper()
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Info do Time -->
+                                    <div class="col">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1 fw-bold">
+                                                    @team.Nome
+                                                    @if (Model.SelectedTeam?.Id == team.Id)
+                                                    {
+                                                        <i class="fas fa-star text-warning ms-1" title="Time ativo"></i>
+                                                    }
+                                                </h6>
+
+                                                @if (!string.IsNullOrEmpty(team.Descricao))
+                                                {
+                                                    <p class="text-muted small mb-1">@team.Descricao</p>
+                                                }
+
+                                                <small class="text-muted">
+                                                    <i class="fas fa-users me-1"></i>@team.FaixaIdadeDisplay
+                                                </small>
+
+                                                <!-- Cores do Time -->
+                                                @if (!string.IsNullOrEmpty(team.CorPrimaria) || !string.IsNullOrEmpty(team.CorSecundaria))
+                                                {
+                                                    <div class="mt-1">
+                                                        <small class="text-muted me-2">Cores:</small>
+                                                        @if (!string.IsNullOrEmpty(team.CorPrimaria))
+                                                        {
+                                                            <span class="badge me-1" style="background-color: @team.CorPrimaria; color: @team.CorSecundaria;">●</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(team.CorSecundaria) && team.CorSecundaria != team.CorPrimaria)
+                                                        {
+                                                            <span class="badge" style="background-color: @team.CorSecundaria; color: @team.CorPrimaria;">●</span>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <!-- Ações -->
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-cog"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    @if (Model.SelectedTeam?.Id != team.Id)
+                                                    {
+                                                        <li>
+                                                            <form asp-action="SelectTeam" method="post" class="d-inline">
+                                                                <input type="hidden" name="teamId" value="@team.Id" />
+                                                                <button type="submit" class="dropdown-item">
+                                                                    <i class="fas fa-star me-2"></i>Selecionar
+                                                                </button>
+                                                            </form>
+                                                        </li>
+                                                    }
+                                                    <li>
+                                                        <a class="dropdown-item" asp-controller="Teams" asp-action="Edit" asp-route-id="@team.Id">
+                                                            <i class="fas fa-edit me-2"></i>Editar
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <form asp-controller="Teams" asp-action="Delete" method="post" class="d-inline"
+                                                              onsubmit="return confirm('Tem certeza que deseja excluir o time @team.Nome?')">
+                                                            <input type="hidden" name="id" value="@team.Id" />
+                                                            <button type="submit" class="dropdown-item text-danger">
+                                                                <i class="fas fa-trash me-2"></i>Excluir
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model.SelectedTeam == null && Model.UserTeams.Any())
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Atenção:</strong> Selecione um time para poder fazer reservas.
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-3">
+                        <i class="fas fa-users fa-2x text-muted mb-3"></i>
+                        <h6 class="text-muted">Nenhum time criado</h6>
+                        <p class="text-muted small">Crie seu primeiro time para começar!</p>
+                        <a class="btn btn-success btn-sm" asp-controller="Teams" asp-action="Create">
+                            <i class="fas fa-plus me-1"></i>Criar Primeiro Time
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Estatísticas Rápidas -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Resumo Geral</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="fw-bold text-primary">@Model.UserTeams.Count</div>
+                        <small class="text-muted">Times</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold text-success">@Model.UpcomingGames.Count</div>
+                        <small class="text-muted">Próximos</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold text-warning">@Model.TotalGamesScheduled</div>
+                        <small class="text-muted">Total</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna da Direita - Jogos do Time Selecionado -->
+    <div class="col-md-8">
+        @if (Model.SelectedTeam != null)
+        {
+            <!-- Histórico de Jogos do Time Selecionado -->
+            @if (Model.PastGames.Any())
+            {
+                <div class="card">
+                    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Histórico - @Model.SelectedTeam.Nome
+                        </h5>
+                        <span class="badge bg-light text-dark">@Model.PastGames.Count</span>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var game in Model.PastGames.Take(3).OrderByDescending(g => g.DataHora))
+                        {
+                            var myTeam = game.TeamId == Model.SelectedTeam.Id ? game.Team : game.OpponentTeam;
+                            var opponentTeam = game.TeamId == Model.SelectedTeam.Id ? game.OpponentTeam : game.Team;
+                            var isFinalized = game.Status == StatusReservation.Finalizada;
+                            var myGoals = game.TeamId == Model.SelectedTeam.Id ? game.GolsTime1 : game.GolsTime2;
+                            var opponentGoals = game.TeamId == Model.SelectedTeam.Id ? game.GolsTime2 : game.GolsTime1;
+                            var myResult = game.TeamId == Model.SelectedTeam.Id ? game.ResultadoTime1 : game.ResultadoTime2;
+
+                            <div class="card mb-2 border-light">
+                                <div class="card-body p-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-3">
+                                            <small class="text-muted">
+                                                @game.DataHora.ToString("dd/MM/yyyy HH:mm")
+                                            </small>
+                                            @if (isFinalized && myResult.HasValue)
+                                            {
+                                                <div class="mt-1">
+                                                    <span class="badge bg-@(myResult == ResultadoPartida.Vitoria ? "success" : myResult == ResultadoPartida.Empate ? "warning" : "danger") text-white">
+                                                        @(myResult == ResultadoPartida.Vitoria ? "Vitória" : myResult == ResultadoPartida.Empate ? "Empate" : "Derrota")
+                                                    </span>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="col-md-6 text-center">
+                                            <div class="d-flex align-items-center justify-content-center">
+                                                <strong class="text-warning">@Model.SelectedTeam.Nome</strong>
+                                                @if (isFinalized && myGoals.HasValue && opponentGoals.HasValue)
+                                                {
+                                                    <span class="badge bg-dark mx-2">@myGoals - @opponentGoals</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-dark mx-2">vs</span>
+                                                }
+                                                <strong>@(opponentTeam?.Nome ?? "Sem oponente")</strong>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 text-end">
+                                            <small class="text-muted">@game.Court.Nome</small>
+                                            @if (!isFinalized && game.Status == StatusReservation.Confirmada && game.DataHora < DateTime.Now)
+                                            {
+                                                <div class="mt-1">
+                                                    <a href="/Match/ConfirmResult/@game.Id" class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-clipboard-list fa-sm"></i> Resultado
+                                                    </a>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (Model.PastGames.Count > 3)
+                        {
+                            <div class="text-center mt-2">
+                                <a asp-controller="Match" asp-action="History" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-history me-1"></i>
+                                    Ver Histórico Completo (@Model.PastGames.Count jogos)
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <!-- Nenhum time selecionado -->
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-star fa-4x text-muted mb-4"></i>
+                    <h4>Selecione um Time</h4>
+                    <p class="text-muted mb-4">Para ver os jogos e estatísticas, você precisa selecionar um time ativo na barra lateral.</p>
+                    @if (Model.UserTeams.Any())
+                    {
+                        <p class="text-muted">Clique no ícone de configurações <i class="fas fa-cog"></i> ao lado de um dos seus times e selecione "Selecionar".</p>
+                    }
+                    else
+                    {
+                        <a class="btn btn-success" asp-controller="Teams" asp-action="Create">
+                            <i class="fas fa-plus me-2"></i>Criar Primeiro Time
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    /* Estilo especial para destacar o time selecionado */
+    .border-warning {
+        border-color: #ffc107 !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    }
+
+    /* Animações para as estatísticas */
+    .card-body .row .col-4 div,
+    .card-body .row .col-6 div {
+        transition: transform 0.2s ease;
+    }
+
+        .card-body .row .col-4 div:hover,
+        .card-body .row .col-6 div:hover {
+            transform: scale(1.05);
+        }
+
+    /* Destacar o time ativo nos jogos */
+    .text-warning {
+        color: #ffc107 !important;
+    }
+
+    /* Estilo para os badges de resultado */
+    .badge.fs-6 {
+        font-size: 0.9rem !important;
+    }
+
+    /* Animação sutil para os cards de estatísticas */
+    .bg-light.rounded,
+    .bg-success.bg-opacity-10.rounded,
+    .bg-warning.bg-opacity-10.rounded,
+    .bg-danger.bg-opacity-10.rounded {
+        transition: all 0.3s ease;
+    }
+
+        .bg-light.rounded:hover {
+            background-color: #e9ecef !important;
+            transform: translateY(-2px);
+        }
+
+        .bg-success.bg-opacity-10.rounded:hover {
+            background-color: rgba(25, 135, 84, 0.2) !important;
+        }
+
+        .bg-warning.bg-opacity-10.rounded:hover {
+            background-color: rgba(255, 193, 7, 0.2) !important;
+        }
+
+        .bg-danger.bg-opacity-10.rounded:hover {
+            background-color: rgba(220, 53, 69, 0.2) !important;
+        }
+</style>

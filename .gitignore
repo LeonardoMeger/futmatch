@@ -1,0 +1,45 @@
+## Ignore arquivos e pastas de build
+bin/
+obj/
+out/
+Debug/
+Release/
+x64/
+x86/
+
+## Pastas do Visual Studio
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Arquivos de cache e temporários
+*.log
+*.tlog
+*.tmp
+*.bak
+*.cache
+*.dbmdl
+*.pdb
+*.ilk
+
+## Arquivos de publicação e pacotes
+*.publish.xml
+*.pubxml
+*.pubxml.user
+*.publishsettings
+*.nupkg
+*.snupkg
+*.nuspec
+
+## Arquivos de build do MSBuild
+*.Build.cs
+*.Build.props
+
+## Configurações locais
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.Development.json
+secrets.json

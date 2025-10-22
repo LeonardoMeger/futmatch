@@ -1,0 +1,145 @@
+﻿@model FutMatchApp.Models.ViewModels.CourtDetailsViewModel
+@{
+    ViewData["Title"] = $"Reservar - {Model.Court.Nome}";
+}
+
+<!-- Header da Quadra -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4><i class="fas fa-futbol me-2"></i>@Model.Court.Nome</h4>
+                <p class="mb-0">@Model.Court.Descricao</p>
+            </div>
+            <div class="text-end">
+                <h5 class="mb-0">R$ @Model.Court.PrecoPorHora.ToString("F2")/hora</h5>
+                <small>@Model.Court.Localizacao</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Time Selecionado -->
+<div class="alert alert-info">
+    <i class="fas fa-users me-2"></i>
+    <strong>Time Selecionado:</strong> @Model.UserTeam.Nome
+    <a href="@Url.Action("Index", "Profile")" class="btn btn-sm btn-outline-info ms-2">Trocar Time</a>
+</div>
+
+<!-- Calendário de Horários (como cardápio) -->
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Horários Disponíveis - Próximos 7 dias</h5>
+    </div>
+    <div class="card-body">
+        @foreach (var date in Model.AvailableDates)
+        {
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2">
+                    <i class="fas fa-calendar me-2"></i>
+                    @date.ToString("dddd, dd/MM/yyyy", new System.Globalization.CultureInfo("pt-BR"))
+                </h6>
+
+                <div class="row">
+                    @foreach (var time in Model.TimeSlots)
+                    {
+                        var dateTime = date.Add(TimeSpan.Parse(time));
+                        var isPast = dateTime <= DateTime.Now;
+                        var isReserved = Model.ExistingReservations.ContainsKey(date) &&
+                        Model.ExistingReservations[date] == TimeSpan.Parse(time);
+
+                        <div class="col-md-2 col-sm-3 col-4 mb-2">
+                            @if (isPast)
+                            {
+                                <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                                    @time
+                                    <br><small>Passou</small>
+                                </button>
+                            }
+                            else if (isReserved)
+                            {
+                                <button class="btn btn-outline-danger btn-sm w-100" disabled>
+                                    @time
+                                    <br><small>Ocupado</small>
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-outline-success btn-sm w-100"
+                                        onclick="reserveSlot('@dateTime.ToString("yyyy-MM-ddTHH:mm:ss")', '@time', '@date.ToString("dd/MM")')">
+                                    @time
+                                    <br><small>Disponível</small>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Botão Voltar -->
+<div class="mt-4">
+    <a class="btn btn-secondary" asp-action="Index">
+        <i class="fas fa-arrow-left me-1"></i>Voltar para Quadras
+    </a>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="reservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check me-2"></i>Confirmar Reserva</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-controller="Reservation" asp-action="Create" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="CourtId" value="@Model.Court.Id" />
+                    <input type="hidden" name="DataHora" id="selectedDateTime" />
+
+                    <div class="alert alert-light">
+                        <h6><i class="fas fa-futbol me-2"></i>@Model.Court.Nome</h6>
+                        <p class="mb-1"><strong>Time:</strong> @Model.UserTeam.Nome</p>
+                        <p class="mb-1"><strong>Data e Hora:</strong> <span id="displayDateTime"></span></p>
+                        <p class="mb-0"><strong>Preço:</strong> R$ @Model.Court.PrecoPorHora.ToString("F2")/hora</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Duração</label>
+                        <select name="DuracaoHoras" class="form-select">
+                            <option value="1">1 hora - R$ @Model.Court.PrecoPorHora.ToString("F2")</option>
+                            <option value="2">2 horas - R$ @((Model.Court.PrecoPorHora * 2).ToString("F2"))</option>
+                            <option value="3">3 horas - R$ @((Model.Court.PrecoPorHora * 3).ToString("F2"))</option>
+                            <option value="4">4 horas - R$ @((Model.Court.PrecoPorHora * 4).ToString("F2"))</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observações (Opcional)</label>
+                        <textarea name="Observacoes" class="form-control" rows="2" placeholder="Informações adicionais sobre a partida..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i>Confirmar Reserva
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function reserveSlot(dateTime, time, dateDisplay) {
+            document.getElementById('selectedDateTime').value = dateTime;
+            document.getElementById('displayDateTime').textContent = dateDisplay + ' às ' + time;
+
+            const modal = new bootstrap.Modal(document.getElementById('reservationModal'));
+            modal.show();
+        }
+    </script>
+}

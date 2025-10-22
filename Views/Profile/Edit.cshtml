@@ -1,0 +1,103 @@
+﻿@model FutMatchApp.Models.ViewModels.EditProfileViewModel
+@{
+    ViewData["Title"] = "Editar Dados Pessoais";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit"></i> Editar Dados Pessoais
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Edit" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Nome" class="form-label">
+                                <i class="fas fa-user"></i> Nome Completo
+                            </label>
+                            <input asp-for="Nome" class="form-control" placeholder="Digite seu nome completo" />
+                            <span asp-validation-for="Nome" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">
+                                <i class="fas fa-envelope"></i> Email
+                            </label>
+                            <input asp-for="Email" class="form-control" type="email" placeholder="seu@email.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Telefone" class="form-label">
+                                <i class="fas fa-phone"></i> Telefone
+                            </label>
+                            <input asp-for="Telefone" class="form-control" placeholder="(00) 00000-0000" />
+                            <span asp-validation-for="Telefone" class="text-danger"></span>
+                            <small class="form-text text-muted">Opcional</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Cidade" class="form-label">
+                                <i class="fas fa-map-marker-alt"></i> Cidade
+                            </label>
+                            <input asp-for="Cidade" class="form-control" placeholder="Sua cidade" />
+                            <span asp-validation-for="Cidade" class="text-danger"></span>
+                            <small class="form-text text-muted">Opcional</small>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Máscara para telefone (opcional)
+        document.addEventListener('DOMContentLoaded', function () {
+            const telefoneInput = document.querySelector('input[name="Telefone"]');
+            if (telefoneInput) {
+                telefoneInput.addEventListener('input', function (e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 11) value = value.substr(0, 11);
+
+                    if (value.length > 6) {
+                        value = value.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, '($1) $2-$3');
+                    } else if (value.length > 2) {
+                        value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+                    } else if (value.length > 0) {
+                        value = value.replace(/^(\d*)/, '($1');
+                    }
+
+                    e.target.value = value;
+                });
+            }
+        });
+    </script>
+}

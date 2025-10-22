@@ -1,0 +1,183 @@
+﻿@model FutMatchApp.Models.ViewModels.AvailableReservationsViewModel
+@{
+    ViewData["Title"] = "Desafios Disponíveis";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-search me-2"></i>Desafios Disponíveis</h2>
+    <a class="btn btn-primary" asp-action="Index" asp-controller="Home">
+        <i class="fas fa-plus me-1"></i>Nova Reserva
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" asp-action="Available">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Localização</label>
+                    <select name="location" class="form-select">
+                        <option value="">Todas as localizações</option>
+                        @foreach (var loc in Model.Locations)
+                        {
+                            <option value="@loc" selected="@(loc == Model.SelectedLocation)">@loc</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Quadra</label>
+                    <select name="courtId" class="form-select">
+                        <option value="">Todas as quadras</option>
+                        @foreach (var court in Model.Courts)
+                        {
+                            <option value="@court.Id" selected="@(court.Id == Model.SelectedCourtId)">@court.Nome</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Horário</label>
+                    <select name="timeSlot" class="form-select">
+                        <option value="">Todos os horários</option>
+                        @foreach (var time in Model.TimeSlots)
+                        {
+                            <option value="@time" selected="@(time == Model.SelectedTimeSlot)">@time</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Data</label>
+                    <input type="date" name="date" class="form-control"
+                           value="@(Model.SelectedDate?.ToString("yyyy-MM-dd"))"
+                           min="@DateTime.Now.ToString("yyyy-MM-dd")">
+                </div>
+
+                <div class="col-md-2 mb-3 d-flex align-items-end">
+                    <div class="btn-group w-100">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>Filtrar
+                        </button>
+                        <a href="@Url.Action("Available")" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Resultados -->
+<div class="mb-3">
+    <small class="text-muted">
+        <i class="fas fa-info-circle me-1"></i>
+        @Model.Reservations.Count() desafio(s) encontrado(s)
+    </small>
+</div>
+
+@if (Model.Reservations.Any())
+{
+    <div class="row">
+        @foreach (var reservation in Model.Reservations)
+        {
+            <div class="col-md-6 mb-4">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">@reservation.Court.Nome</h6>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-clock me-1"></i>Aguardando
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <p class="card-text mb-1">
+                                    <i class="fas fa-calendar me-2 text-primary"></i>
+                                    <strong>@reservation.DataHora.ToString("dd/MM/yyyy")</strong>
+                                </p>
+                                <p class="card-text mb-1">
+                                    <i class="fas fa-clock me-2 text-primary"></i>
+                                    @reservation.DataHora.ToString("HH:mm") - @reservation.DataHora.AddHours(reservation.DuracaoHoras).ToString("HH:mm")
+                                </p>
+                                <p class="card-text mb-1">
+                                    <i class="fas fa-hourglass-half me-2 text-primary"></i>
+                                    @reservation.DuracaoHoras @(reservation.DuracaoHoras == 1 ? "hora" : "horas")
+                                </p>
+                            </div>
+                            <div class="col-6">
+                                <p class="card-text mb-1">
+                                    <i class="fas fa-users me-2 text-success"></i>
+                                    <strong>@reservation.Team.Nome</strong>
+                                </p>
+                                <p class="card-text mb-1">
+                                    <i class="fas fa-user me-2 text-muted"></i>
+                                    <small>@reservation.User.Nome</small>
+                                </p>
+                                <p class="card-text mb-1">
+                                    <i class="fas fa-map-marker-alt me-2 text-info"></i>
+                                    <small>@reservation.Court.Localizacao</small>
+                                </p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(reservation.Observacoes))
+                        {
+                            <div class="alert alert-light mb-3">
+                                <i class="fas fa-comment me-2"></i>
+                                <strong>Observações:</strong> @reservation.Observacoes
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">
+                                <i class="fas fa-calendar-plus me-1"></i>
+                                Criado em @reservation.DataCriacao.ToString("dd/MM/yyyy HH:mm")
+                            </span>
+                            <form asp-action="AcceptChallenge" method="post" class="d-inline"
+                                  onsubmit="return confirm('Deseja aceitar este desafio? Sua partida será confirmada.')">
+                                <input type="hidden" name="reservationId" value="@reservation.Id" />
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-handshake me-1"></i>Aceitar Desafio
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">Nenhum desafio encontrado</h4>
+        <p class="text-muted">
+            @if (!string.IsNullOrEmpty(Model.SelectedLocation) || Model.SelectedCourtId.HasValue || !string.IsNullOrEmpty(Model.SelectedTimeSlot) || Model.SelectedDate.HasValue)
+            {
+                <text>Nenhum desafio corresponde aos filtros selecionados.</text>
+            }
+            else
+            {
+                <text>No momento não há desafios aguardando oponentes.</text>
+            }
+        </p>
+        <div class="mt-4">
+            <a class="btn btn-primary me-2" asp-action="Create">
+                <i class="fas fa-plus me-1"></i>Criar Meu Desafio
+            </a>
+            @if (!string.IsNullOrEmpty(Model.SelectedLocation) || Model.SelectedCourtId.HasValue || !string.IsNullOrEmpty(Model.SelectedTimeSlot) || Model.SelectedDate.HasValue)
+            {
+                <a class="btn btn-outline-secondary" asp-action="Available">
+                    <i class="fas fa-times me-1"></i>Limpar Filtros
+                </a>
+            }
+        </div>
+    </div>
+}
